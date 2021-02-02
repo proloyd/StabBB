@@ -100,10 +100,17 @@ def stab_BB(
             return x1
 
         def mainAlg(self):
+            eta = 0.1
             delta = deltaInput
-            #: g_{k-1} for the algorithm
+            #: f_{k-1}, g_{k-1}, Ckant, Qkant for the algorithm
+            fkant = costFn(x0)
+            Qkant = 1
+            Ckant = fkant
             gkant = gradFn(x0)
-            #: g_{k} for the algorithm
+            #: f_{k}, g_{k}, Ck, Qk for the algorithm
+            fk = costFn(self.x[1])
+            Qk = eta * Qkant + 1
+            Ck = (eta * Qkant * Ckant + fk) / Qk
             gk = gradFn(self.x[1])
             #: History of gradient norm
             self.normGrad = [np.linalg.norm(gk)]
@@ -122,12 +129,26 @@ def stab_BB(
                     # Applies the proposed stabilization
                     alphak = min([alpha_bb_corrected, delta / np.linalg.norm(gk),])
 
-                    #: Set $x_{k+1} \leftarrow x_k - \alpha_k g_k$
-                    xk = self.x[-1] - alphak * gk
+                    # Backtracking
+                    while True:
+                        #: Set $x_{k+1} \leftarrow x_k - \alpha_k g_k$
+                        xk = self.x[-1] - alphak * gk
                     
-                    # Update $g$ 
+                        fk = costFn(xk)
+                        if fk < Ck - 0.9 * alphak * (gk * gk).sum():
+                            break
+                        elif alphak < tol:
+                            break
+                        else:
+                            alphak /= 2
+
+                    # Update $g$, $C$ and $Q$
                     gkant = gk
                     gk = gradFn(xk)
+                    Qkant = Qk
+                    Qk = eta * Qkant + 1
+                    Ckant = Ck
+                    Ck = (eta * Qkant * Ckant + fk) / Qk
 
                     # Update $\Delta$ depending on strategy
                     if deltaUpdateStrategy == "adaptative":
