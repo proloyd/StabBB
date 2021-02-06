@@ -100,7 +100,7 @@ def stab_BB(
             return x1
 
         def mainAlg(self):
-            eta = 0.1
+            eta = 0.01
             delta = deltaInput
             #: f_{k-1}, g_{k-1}, Ckant, Qkant for the algorithm
             fkant = costFn(x0)
@@ -135,7 +135,7 @@ def stab_BB(
                         xk = self.x[-1] - alphak * gk
                     
                         fk = costFn(xk)
-                        if fk < Ck - 0.9 * alphak * (gk * gk).sum():
+                        if fk < Ck - 0.01 * alphak * (gk * gk).sum():
                             break
                         elif alphak < tol:
                             break
