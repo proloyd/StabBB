@@ -1,21 +1,22 @@
 import numpy as np
 import pdb
 
+
 def stab_BB(
     x0,
     costFn,
     gradFn,
-    bb = 1,
-    deltaUpdateStrategy = 'adaptative',
-    deltaInput = 1e6,
-    c = 0.2,
-    maxIt = 10000,
-    tol = 1e-7,
+    bb=1,
+    deltaUpdateStrategy='adaptative',
+    deltaInput=1e6,
+    c=0.2,
+    maxIt=10000,
+    tol=1e-7,
     verbose=False,
 ):
     """ Stabilized Barzilai-Borwein Method for unconstrained optimization
 
-    Implementes the algorithm described in [1] the paper Burdakov, Oleg & Dai, 
+    Implementes the algorithm described in [1] the paper Burdakov, Oleg & Dai,
     Yu-Hong & Huang, Na. (2019). Stabilized Barzilai-Borwein.
 
     Parameters
@@ -38,12 +39,12 @@ def stab_BB(
         If ``deltaUpdateStrategy=='adaptative'`` it's the delta used until the
         fourth iteration. For this case it's suggested to use a large value like
         1e6.
-        Else it will be the delta used throughout the experiment. 
+        Else it will be the delta used throughout the experiment.
         The paper was tested setting this value to be 2 or 0.01, 0.1 or 1.0.
     c: number, optional (default 1e6)
         Paramater for adaptative choice of delta. Must be set if
         ``deltaUpdateStrategy=='adaptative'``.
-        The paper was tested using 0.1,0.2,0.25 or 0.3 for quadratic cost 
+        The paper was tested using 0.1,0.2,0.25 or 0.3 for quadratic cost
         functions and also using 0.1, 0.5 or 1.0 for nonquadratic ones.
     maxIt : int, optional (defalt 500)
         Maximum number of iteration
@@ -62,7 +63,7 @@ def stab_BB(
 
     References
     ----------
-    .. [1] Burdakov, Oleg & Dai, Yu-Hong & Huang, Na. (2019). Stabilized 
+    .. [1] Burdakov, Oleg & Dai, Yu-Hong & Huang, Na. (2019). Stabilized
         Barzilai-Borwein.
 
     Examples
@@ -78,7 +79,7 @@ def stab_BB(
     """
 
     class StabBBInt:
-        """ Internals of the function 
+        """ Internals of the function
         The motivation for using this internal class is to be able to return a
         value even if the user makes a keyboard interruption.
         """
@@ -86,6 +87,11 @@ def stab_BB(
         def __init__(self):
             #: History of evaluated x's
             self.x = [x0, self.backtracking(x0, gradFn(x0))]
+            # if backtracking fails to provide two resolved values of x's
+            if np.linalg.norm(self.x[0] - self.x[1], np.inf) < 1e-15:
+                from numpy.random import default_rng
+                rng = default_rng(seed=0)
+                self.x[1] = self.x[1] + rng.standard_normal()
             #: History of evaluated alphas
             self.alpha = []
 
@@ -120,20 +126,20 @@ def stab_BB(
                     skant = self.x[-1] - self.x[-2]
                     #: $y_{k-1} \leftarrow  g_k - g_{k-1}
                     ykant = gk - gkant
-                    
+
                     # Compute $\alpha_k$
                     #
                     alpha_bb = self.calcAlpha(skant, ykant)
                     # Adaptation of method to deal with nonconvex functions
                     alpha_bb_corrected = self.correctAlpha(alpha_bb, skant, ykant)
                     # Applies the proposed stabilization
-                    alphak = min([alpha_bb_corrected, delta / np.linalg.norm(gk),])
+                    alphak = min([alpha_bb_corrected, delta / np.linalg.norm(gk), ])
 
                     # Backtracking
                     while True:
                         #: Set $x_{k+1} \leftarrow x_k - \alpha_k g_k$
                         xk = self.x[-1] - alphak * gk
-                    
+
                         fk = costFn(xk)
                         if fk < Ck - 0.01 * alphak * (gk * gk).sum():
                             break
